@@ -1,8 +1,8 @@
 const { Client } = require('@notionhq/client');
 const dotenv = require('dotenv');
 
-const ENV_FILE = '../secret/.env';
-const INS_FILE = '../secret/masters.json'
+const ENV_FILE = './secret/.env';
+const INS_FILE = './secret/masters.json'
 
 // 設定ファイルを読み込む
 dotenv.config({path: ENV_FILE});
