@@ -21,15 +21,34 @@ const masters = (() => {
 })();
 
 /**
+ * 現在の日本時間を ISO 8601 形式の文字列で取得する。
+ * @returns {string} 現在の日本時間を ISO 8601 形式にフォーマットした文字列
+ */
+const getJapanTime = () => {
+  const now = new Date();
+  const jstOffset = 9 * 60 * 60 * 1000; // 日本時間のオフセット（9時間）をミリ秒単位で計算
+  const jstDate = new Date(now.getTime() + jstOffset); // 現在時刻にオフセットを加算して、日本時間に変換
+  const isoString = jstDate.toISOString(); // ISO 8601形式にフォーマット
+  // console.log(isoString); // 例: 2023-05-06T14:30:00.000Z
+  return isoString
+}
+
+/**
  * レコードを更新する
- * @param {Object} record - 更新するレコードオブジェクト
+ * @param {Object} page - 更新するレコードオブジェクト
  * @return {Promise} レコード更新のPromise
  */
-const updateDatabaseRecord = async (record) => {
-  if (record.properties['データ移動']) {
-    record.properties['データ移動'].date.start = Date.now();
-  }
-  const response = await notion.pages.update(record);
+const updateDatabaseRecord = async (page, isoString) => {
+  if (!page.id) return;
+
+  const pageId = page.id;
+  const dateObject = { "date": { "start": isoString } };
+  const response = await notion.pages.update({
+    page_id: pageId,
+    properties: {
+      'データ移動': dateObject,
+    },
+  });
   console.log(response);
 }
 
@@ -67,7 +86,16 @@ const removeFormulaProperties = (obj) => {
 }
 
 /**
- * 
+ * データベースの検索クエリに使用するフィルターオブジェクト
+ * @type {Object}
+ * @property {Array} and - 各条件のAND条件での結合を表す配列
+ * @property {Object} and[n].property - プロパティ名
+ * @property {Object} and[n].select - プロパティ値がSelect型の場合の検索条件
+ * @property {Object} and[n].select.is_not_empty - Select型プロパティが空でない場合の検索条件
+ * @property {Object} and[n].number - プロパティ値がNumber型の場合の検索条件
+ * @property {Object} and[n].number.is_not_empty - Number型プロパティが空でない場合の検索条件
+ * @property {Object} and[n].date - プロパティ値がDate型の場合の検索条件
+ * @property {Object} and[n].date.is_empty - Date型プロパティが空の場合の検索条件
  */
 const queryFilter = {
   "and": [
@@ -93,7 +121,10 @@ const queryFilter = {
 };
 
 /**
- * 
+ * データベースの検索クエリに使用するソートオブジェクトの配列
+ * @type {Array}
+ * @property {Object} property - ソートするプロパティ名
+ * @property {string} direction - ソート方向（"ascending"または"descending"）
  */
 const querySorts = [
   {
@@ -108,15 +139,14 @@ const querySorts = [
  */
 const distributePages = async () => {
   try {
+    const dateIsoString = getJapanTime(); // 処理日時を取得
     // データベースを検索するクエリを実行する
     const response = await notion.databases.query({
       database_id: masters['本番用'],
       filter: queryFilter,
       sorts: querySorts,
     });
-
-    // 検索結果の配列を取得する
-    const databaseResults = response.results;
+    const databaseResults = response.results; // 検索結果の取得
     databaseResults.forEach(record => {
       if (!record.properties.幕屋タグ.select || !record.properties.幕屋タグ.select.name)
         return; // 幕屋タグが無ければスキップ
@@ -124,12 +154,12 @@ const distributePages = async () => {
         return; // 受付け番号が無ければスキップ
 
       console.log(`${record.properties.氏名.formula.string}: ${record.properties.幕屋タグ.select.name}`);
+      const makuyaId = masters[record.properties.幕屋タグ.select.name]; // dbIdを取得
 
-      // dbIdを取得
-      const makuyaId = masters[record.properties.幕屋タグ.select.name];
-
-      // 更新
-      // updateDatabaseRecord(record);
+      // コピーフラグを更新
+      updateDatabaseRecord(record, dateIsoString);
+      record.properties.データ移動.date = { "start": dateIsoString };
+      // console.log(record);
       
       // バックアップ
       copyNotionPage(record, masters['バックアップ']);
@@ -143,5 +173,5 @@ const distributePages = async () => {
   }
 }
 
-// データベースの内容を取得する関数を呼び出す
+// 各地にデータを分配する。
 distributePages();
