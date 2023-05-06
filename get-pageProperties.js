@@ -8,10 +8,10 @@ const INS_FILE = '../secret/masters.json'
 dotenv.config({path: ENV_FILE});
 
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
+const targetPageId = process.env.TARGET_PAGE_ID
 
-// https://www.notion.so/katatsukuri/9e34fba2f0cb41dd926d912a4e5d7bb4?pvs=4
 (async () => {
-    const pageId = '9e34fba2-f0cb-41dd-926d-912a4e5d7bb4';
+    const pageId = targetPageId;
     const response = await notion.pages.retrieve({ page_id: pageId });
     console.log(response);
     console.log(response.properties.データ移動.date);
