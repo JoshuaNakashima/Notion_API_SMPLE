@@ -2,18 +2,15 @@
 const { Client } = require('@notionhq/client');
 const dotenv = require('dotenv');
 
+const ENV_FILE = '../secret/.env';
+const OUT_FILE = '../secret/masters.json'
+
 // 設定ファイルを読み込む
-dotenv.config({path: "./secret/.env"});
+dotenv.config({path: ENV_FILE});
 
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
 
 const fs = require('fs');
-
-const data = {
-  name: 'John Doe',
-  age: 30,
-  hobbies: ['reading', 'running', 'swimming'],
-};
 
 // 全てのDBを取得する。
 (async () => {
@@ -39,6 +36,6 @@ const data = {
   });
 
   // JSONに変換してファイルに書き出し
-  fs.writeFileSync('./secret/masters.json', JSON.stringify(masters));
+  fs.writeFileSync(OUT_FILE, JSON.stringify(masters));
 
 })();
