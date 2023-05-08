@@ -49,7 +49,7 @@ const updateDatabaseRecord = async (page, isoString) => {
       'データ移動': dateObject,
     },
   });
-  console.log(response);
+  // console.log(response);
 }
 
 /**
@@ -140,11 +140,13 @@ const querySorts = [
 const distributePages = async () => {
   try {
     const dateIsoString = getJapanTime(); // 処理日時を取得
+    console.log(dateIsoString);
     // データベースを検索するクエリを実行する
     const response = await notion.databases.query({
       database_id: masters['本番用'],
       filter: queryFilter,
       sorts: querySorts,
+      page_size: 100,
     });
     const databaseResults = response.results; // 検索結果の取得
     databaseResults.forEach(record => {
@@ -156,6 +158,12 @@ const distributePages = async () => {
       console.log(`${record.properties.氏名.formula.string}: ${record.properties.幕屋タグ.select.name}`);
       const makuyaId = masters[record.properties.幕屋タグ.select.name]; // dbIdを取得
 
+      if (!makuyaId)
+      {
+        console.log(`no master: ${record.properties.幕屋タグ.select.name}`);
+        return;
+      }
+
       // コピーフラグを更新
       updateDatabaseRecord(record, dateIsoString);
       record.properties.データ移動.date = { "start": dateIsoString };
@@ -165,7 +173,7 @@ const distributePages = async () => {
       copyNotionPage(record, masters['バックアップ']);
 
       // 各幕屋に展開
-      // copyNotionPage(record, makuyaId);
+      copyNotionPage(record, makuyaId);
     });
 
   } catch (error) {

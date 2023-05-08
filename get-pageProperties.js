@@ -2,13 +2,12 @@ const { Client } = require('@notionhq/client');
 const dotenv = require('dotenv');
 
 const ENV_FILE = './secret/.env';
-const INS_FILE = './secret/masters.json'
 
 // 設定ファイルを読み込む
 dotenv.config({path: ENV_FILE});
 
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
-const targetPageId = process.env.TARGET_PAGE_ID
+const targetPageId = process.env.TARGET_PAGE_ID;
 
 (async () => {
     const pageId = targetPageId;
