@@ -64,6 +64,7 @@ const copyNotionPage = async (postObject, dbId) => {
   clone.parent.database_id = dbId;
   const response = await notion.pages.create(clone);
   // console.log(response);
+  return response.id;
 }
 
 /**
@@ -141,6 +142,7 @@ const distributePages = async () => {
   try {
     const dateIsoString = getJapanTime(); // 処理日時を取得
     console.log(dateIsoString);
+    
     // データベースを検索するクエリを実行する
     const response = await notion.databases.query({
       database_id: masters['本番用'],
@@ -149,13 +151,13 @@ const distributePages = async () => {
       page_size: 100,
     });
     const databaseResults = response.results; // 検索結果の取得
+
     databaseResults.forEach(record => {
       if (!record.properties.幕屋タグ.select || !record.properties.幕屋タグ.select.name)
         return; // 幕屋タグが無ければスキップ
       if (!record.properties.受付番号.number)
         return; // 受付け番号が無ければスキップ
 
-      console.log(`${record.properties.氏名.formula.string}: ${record.properties.幕屋タグ.select.name}`);
       const makuyaId = masters[record.properties.幕屋タグ.select.name]; // dbIdを取得
 
       if (!makuyaId)
@@ -164,16 +166,23 @@ const distributePages = async () => {
         return;
       }
 
-      // コピーフラグを更新
-      updateDatabaseRecord(record, dateIsoString);
       record.properties.データ移動.date = { "start": dateIsoString };
-      // console.log(record);
-      
-      // バックアップ
-      copyNotionPage(record, masters['バックアップ']);
 
-      // 各幕屋に展開
-      copyNotionPage(record, makuyaId);
+        // 各幕屋に展開
+      const resId = copyNotionPage(record, makuyaId);
+      if (resId)
+      {
+        // コピーフラグを更新
+        updateDatabaseRecord(record, dateIsoString);
+        
+        // console.log(record);
+        console.log(`${record.properties.受付番号.number}: ${record.properties.氏名.formula.string}: ${record.properties.幕屋タグ.select.name}`);
+
+        // バックアップ
+        copyNotionPage(record, masters['バックアップ']);
+      }
+
+      setTimeout(() => { /* 処理無し */ }, 1000); // 1000ミリ秒（1秒）後に実行
     });
 
   } catch (error) {
