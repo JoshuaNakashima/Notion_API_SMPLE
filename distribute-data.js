@@ -152,6 +152,7 @@ const distributePages = async () => {
     });
     const databaseResults = response.results; // 検索結果の取得
 
+    let timeout = 1000;
     databaseResults.forEach(record => {
       if (!record.properties.幕屋タグ.select || !record.properties.幕屋タグ.select.name)
         return; // 幕屋タグが無ければスキップ
@@ -182,7 +183,8 @@ const distributePages = async () => {
         copyNotionPage(record, masters['バックアップ']);
       }
 
-      setTimeout(() => { /* 処理無し */ }, 1000); // 1000ミリ秒（1秒）後に実行
+      setTimeout(() => { /* 処理無し */ }, timeout); // 1000ミリ秒（1秒）後に実行
+      timeout = timeout + 1000;
     });
 
   } catch (error) {
